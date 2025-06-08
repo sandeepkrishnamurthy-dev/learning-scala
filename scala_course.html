@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scala & FP for Pythonistas: Interactive Course</title>
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The application is structured as a single-page learning dashboard. A fixed sidebar on the left lists all course chapters, acting as the primary navigation. This allows users to follow the course sequentially or jump to specific topics. The main content area on the right dynamically displays the content of the selected chapter. This structure was chosen for its intuitive, non-linear navigation, which is ideal for a self-paced course. It breaks down a large document into manageable, topic-focused sections, preventing user overwhelm and improving content retention. An interactive progress chart at the top provides visual feedback on completion, enhancing user engagement. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Course chapters and completion status. Goal: Motivate user. Viz: Donut Chart (Chart.js). Interaction: Updates on chapter navigation. Justification: Provides a clear, visual "gamified" sense of progress. Library: Chart.js (Canvas).
+        - Report Info: Code examples. Goal: Inform and enable practice. Presentation: Styled code blocks. Interaction: "Copy to Clipboard" button. Justification: Essential utility for a programming course. Method: HTML/CSS + JS.
+        - Report Info: Python vs. Scala comparisons. Goal: Compare and bridge concepts. Presentation: Visually distinct callout boxes. Justification: Highlights critical information for the target audience (Python developers). Method: HTML/CSS (Tailwind).
+        - Report Info: Chapter exercises. Goal: Practice and reinforce learning. Presentation: Collapsible sections. Interaction: Click to reveal hints/solutions. Justification: Allows for active recall practice without premature spoilers. Method: HTML/CSS + JS.
+        - Report Info: Chapter structure. Goal: Organize and navigate content. Presentation: Sidebar navigation menu. Interaction: Click to switch content view. Justification: Standard, intuitive SPA navigation pattern. Method: HTML/CSS + JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8F7F4; /* Warm Neutral Background */
+        }
+        .sidebar {
+            background-color: #FFFFFF;
+            border-right: 1px solid #E5E7EB;
+        }
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+            color: #4A4A4A; /* Muted Text */
+        }
+        .nav-link:hover, .nav-link.active {
+            background-color: #EAE8E3; /* Subtle Accent */
+            color: #1a1a1a;
+            border-right: 3px solid #A69C8F; /* Main Accent */
+        }
+        .content-card {
+            background-color: #FFFFFF;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border: 1px solid #E5E7EB;
+        }
+        .code-block {
+            background-color: #2D2D2D;
+            color: #F8F8F2;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            position: relative;
+            overflow-x: auto;
+        }
+        .code-block pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .code-block:hover .copy-btn {
+            opacity: 1;
+        }
+        .comparison-box {
+            background-color: #F0EFEA;
+            border-left: 4px solid #A69C8F;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 0.25rem;
+        }
+        .exercise-section {
+            border: 1px dashed #D1D5DB;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 0.5rem;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 200px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 200px;
+            max-height: 200px;
+        }
+        h2 { font-size: 1.875rem; font-weight: 700; color: #333; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #EAE8E3; }
+        h3 { font-size: 1.5rem; font-weight: 600; color: #444; margin-top: 2rem; margin-bottom: 1rem; }
+        h4 { font-size: 1.25rem; font-weight: 600; color: #555; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        p { line-height: 1.6; margin-bottom: 1rem; color: #374151; }
+        li { margin-bottom: 0.5rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }
+        th { background-color: #F0EFEA; }
+    </style>
+</head>
+<body class="flex h-screen">
+
+    <aside class="sidebar w-64 flex-shrink-0 hidden md:block overflow-y-auto">
+        <div class="p-4">
+            <h1 class="text-xl font-bold text-gray-800">Scala Course</h1>
+            <p class="text-sm text-gray-500">for Python Developers</p>
+        </div>
+        <nav id="navigation-menu" class="mt-4">
+            <!-- Navigation links will be populated by JS -->
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white border-b p-4 flex justify-between items-center">
+             <button id="menu-toggle" class="md:hidden p-2 rounded-md text-gray-600 hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+            <h2 id="main-header-title" class="text-xl font-semibold text-gray-700">Welcome</h2>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-gray-600">Course Progress</span>
+                <div class="chart-container h-16 w-16 !max-w-[64px] !max-h-[64px] !h-[64px]">
+                     <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+        </header>
+
+        <div id="content-area" class="flex-1 overflow-y-auto p-4 md:p-8">
+            <!-- Content will be populated by JS -->
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const courseData = {
+                'chapter-1': {
+                    title: 'Getting Started with Scala',
+                    content: `
+                        <h2>Chapter 1: Getting Started with Scala on macOS</h2>
+                        <div class="content-card p-6">
+                            <h3>1.1. Introduction: Why Scala for Python Developers?</h3>
+                            <p>Scala is a powerful, general-purpose programming language that seamlessly integrates features of object-oriented and functional programming. For developers proficient in Python, Scala offers a compelling set of advantages that address common challenges and open doors to new possibilities, particularly in high-performance computing, big data, and concurrent systems.</p>
+                            
+                            <div class="comparison-box">
+                                <h4>Key Transition: Static Typing with Type Inference</h4>
+                                <p>One of the most significant transitions for a Python developer is Scala's <strong>static typing</strong>. While Python's dynamic typing allows for rapid prototyping, Scala's sophisticated <strong>type inference</strong> often makes the code feel just as concise. You get the safety of compile-time checks without excessive boilerplate.</p>
+                            </div>
+                            
+                            <p>Performance is another key area where Scala shines. Scala code is compiled to Java bytecode and runs on the <strong>Java Virtual Machine (JVM)</strong>, a mature and highly optimized runtime environment. This addresses a common concern for Python developers working on applications where raw speed is critical, especially when compared to Python's Global Interpreter Lock (GIL) limitations in true parallelism.</p>
+                        </div>
+                        <div class="content-card p-6 mt-6">
+                            <h3>1.2. Setting up your Mac: Installing JDK and Scala</h3>
+                            <p>A proper development environment is crucial. This section details the installation of the Java Development Kit (JDK) and Scala itself on a macOS system.</p>
+                            <h4>macOS Scala Development Environment Checklist</h4>
+                            <table>
+                                <thead>
+                                    <tr><th>Component</th><th>Installation Method/Command (macOS)</th><th>Verification Command</th><th>Notes</th></tr>
+                                </thead>
+                                <tbody>
+                                    <tr><td>JDK (e.g., Temurin 17)</td><td>Download from adoptium.net, run installer</td><td><code>java -version</code></td><td>Required for Scala to run on JVM</td></tr>
+                                    <tr><td>Scala (via Coursier)</td><td><code>brew install coursier/formulas/coursier</code>, then <code>cs setup</code></td><td><code>scala -version</code>, <code>scalac -version</code></td><td>Recommended installer. Installs Scala 3 by default.</td></tr>
+                                    <tr><td>sbt (via Coursier)</td><td>Included with <code>cs setup</code></td><td><code>sbt --version</code></td><td>Scala Build Tool, essential for project management.</td></tr>
+                                    <tr><td>IntelliJ + Scala Plugin</td><td>Download IntelliJ Community, install "Scala" plugin</td><td>(IDE functionality)</td><td>Powerful IDE with good sbt integration.</td></tr>
+                                    <tr><td>VS Code + Metals Ext.</td><td>Download VS Code, install "Metals" extension</td><td>(IDE functionality)</td><td>Lightweight editor with robust Scala support.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                         <div class="content-card p-6 mt-6">
+                            <h3>1.4. Your First Scala Program: "Hello, World!"</h3>
+                            <p>With the environment set up, it's time to write and run the first Scala program. In Scala 3, the <code>@main</code> annotation provides a simple way to define an executable program.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>package com.example
+
+@main def helloWorld(): Unit = {
+  println("Hello, Scala World!")
+}</code></pre>
+                            </div>
+                            <h4 class="mt-4">The Scala REPL (Read-Eval-Print Loop)</h4>
+                            <p>The Scala REPL is an interactive shell invaluable for experimenting with Scala code without creating a full project. Start it by typing <code>scala</code> in your terminal.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>scala> val x = 10
+// val x: Int = 10
+
+scala> val y = x * 2
+// val y: Int = 20
+
+scala> def greet(name: String): String = s"Hello, $name"
+// def greet(name: String): String
+
+scala> greet("Student")
+// val res0: String = Hello, Student</code></pre>
+                            </div>
+                        </div>
+                        <div class="exercise-section">
+                            <h4>Chapter 1: Hands-on Exercises</h4>
+                            <ol class="list-decimal list-inside">
+                                <li>Verify that JDK, Scala, and sbt are correctly installed by checking their versions in the terminal.</li>
+                                <li>Set up either IntelliJ IDEA with the Scala plugin or VS Code with the Metals extension.</li>
+                                <li>Create a "Hello, World!" project using sbt and run it from both the IDE and the sbt console.</li>
+                                <li>Open the Scala REPL and perform basic arithmetic, string interpolation, and define a simple method.</li>
+                            </ol>
+                        </div>
+                    `,
+                },
+                'chapter-2': {
+                    title: 'Scala Fundamentals',
+                    content: `
+                        <h2>Chapter 2: Scala Fundamentals for Python Programmers</h2>
+                        <div class="content-card p-6">
+                            <h3>2.2. Variables: val (Immutable) vs. var (Mutable)</h3>
+                            <p>A cornerstone of idiomatic Scala is the strong preference for <strong>immutability by default</strong>. Developers are encouraged to use <code>val</code> whenever possible and resort to <code>var</code> only when mutability is explicitly needed.</p>
+                            <div class="comparison-box">
+                                <h4>Paradigm Shift: Immutability First</h4>
+                                <p>This contrasts with Python, where variables are often mutable by default. Embracing immutability leads to more predictable and thread-safe code, which is a fundamental pillar of functional programming.</p>
+                            </div>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>val message = "Hello, Scala!" // Immutable, type String is inferred
+var count = 0                   // Mutable, type Int is inferred
+
+// message = "New message" // This would cause a compilation error!
+count = count + 1         // This is fine, 'count' is a var.</code></pre>
+                            </div>
+                        </div>
+
+                        <div class="content-card p-6 mt-6">
+                            <h3>2.4. Control Structures: Thinking in Expressions</h3>
+                            <p>In Scala, nearly everything is an expression, meaning it evaluates to a value. This is a significant departure from Python, where statements (like an <code>if</code> block) and expressions are distinct.</p>
+                            <h4>if/else Expressions</h4>
+                            <p>The <code>if/else</code> construct in Scala returns the value of the chosen branch, allowing for direct assignment.</p>
+                             <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>val a = 10
+val b = 20
+val maxValue = if a > b then a else b // maxValue is assigned 20
+println(s"The max value is $maxValue")</code></pre>
+                            </div>
+                            <h4 class="mt-4">for Comprehensions (with yield)</h4>
+                            <p>These are used to create new collections by transforming and filtering existing ones, similar to Python's list comprehensions but more powerful.</p>
+                             <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>val numbers = List(1, 2, 3, 4, 5)
+val squaredEvens = for {
+  n <- numbers
+  if n % 2 == 0 // A 'guard' or filter
+} yield n * n
+// squaredEvens will be List(4, 16)</code></pre>
+                            </div>
+                        </div>
+                        <div class="content-card p-6 mt-6">
+                             <h3>2.5. Defining Methods and Functions</h3>
+                             <p>Methods are defined with the <code>def</code> keyword. Parameter types must always be declared, but the return type can often be inferred by the compiler.</p>
+                              <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>// Method with explicit return type
+def add(a: Int, b: Int): Int = a + b
+
+// Method returning Unit (like None in Python for procedures)
+def printGreeting(name: String): Unit = println(s"Hello, $name!")
+
+// Method with a default parameter value
+def greet(name: String, prefix: String = "Mr./Ms."): String = s"Hello, $prefix $name"
+
+greet("Smith") // Uses default prefix
+greet("Jones", "Dr.") // Overrides default</code></pre>
+                            </div>
+                        </div>
+                         <div class="exercise-section">
+                            <h4>Chapter 2: Hands-on Exercises</h4>
+                            <ol class="list-decimal list-inside">
+                                <li>Translate a simple Python script into Scala, focusing on using <code>val</code>, <code>if/else</code> expressions, and <code>for</code> comprehensions.</li>
+                                <li>Create a Scala method <code>doubleEvens</code> that takes a <code>List[Int]</code> and returns a new list containing only the even numbers, doubled.</li>
+                            </ol>
+                        </div>
+                    `
+                },
+                 'chapter-3': {
+                    title: 'Object-Oriented Programming',
+                    content: `
+                        <h2>Chapter 3: Object-Oriented Programming in Scala</h2>
+                        <div class="content-card p-6">
+                            <h3>3.1. Companion Objects and Classes</h3>
+                             <p>When a <code>class</code> and an <code>object</code> share the same name in the same file, they are companions. They can access each other's private members. The companion object is the perfect place for factory methods and static-like utilities.</p>
+                             <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>class Person(val name: String, private val age: Int) {
+  def description: String = s"$name is $age years old. Secret: \${Person.Secret}"
+}
+
+object Person { // Companion object
+  private val Secret = "They love Scala!"
+  // Factory 'apply' method lets us create instances without 'new'
+  def apply(name: String, age: Int): Person = new Person(name, age)
+}
+
+val person = Person("Bob", 25) // No 'new' keyword needed!
+println(person.description)</code></pre>
+                            </div>
+                        </div>
+                        <div class="content-card p-6 mt-6">
+                             <h3>3.4. Case Classes: Powerhouses for Immutable Data</h3>
+                             <p>Case classes are a special kind of class optimized for modeling immutable data. The compiler automatically generates useful methods like <code>equals</code>, <code>hashCode</code>, <code>toString</code>, and a <code>copy</code> method.</p>
+                              <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>case class Book(title: String, author: String)
+
+val book1 = Book("Functional Programming in Scala", "Chiusano & Bjarnason")
+val book2 = book1.copy(title = "The Red Book") // Create a new immutable instance
+
+println(book1)
+// Output: Book(Functional Programming in Scala,Chiusano & Bjarnason)
+
+println(book2)
+// Output: Book(The Red Book,Chiusano & Bjarnason)</code></pre>
+                            </div>
+                        </div>
+                        <div class="content-card p-6 mt-6">
+                             <h3>3.5. Pattern Matching: Beyond switch</h3>
+                             <p>Pattern matching is one of Scala's most powerful features. It allows for complex conditional logic and data deconstruction in a clean, readable way.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>import scala.util.Random
+
+val x: Any = Random.nextInt(5)
+
+val description = x match {
+  case 0 => "It's zero."
+  case 1 | 2 => "It's a small number."
+  case n: Int if n > 2 => s"It's a larger number: $n" // With a guard
+  case _ => "It's something else." // Wildcard, default case
+}
+println(description)</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+                'chapter-4': {
+                    title: 'Functional Programming Core',
+                    content: `
+                        <h2>Chapter 4: Diving into Functional Programming</h2>
+                         <div class="content-card p-6">
+                            <h3>4.1. Core FP Principles</h3>
+                            <ul class="list-disc list-inside">
+                                <li><strong>Pure Functions:</strong> Output depends only on input, with no side effects.</li>
+                                <li><strong>Immutability:</strong> Data structures are not changed after creation.</li>
+                                <li><strong>First-Class Functions:</strong> Functions are values that can be passed around.</li>
+                            </ul>
+                            <div class="comparison-box">
+                                <h4>Managing Complexity</h4>
+                                <p>For Python developers, FP is a powerful way to manage complexity. By strictly controlling state and side effects, pure functions and immutability drastically reduce the mental overhead required to track how data changes, making codebases more robust and maintainable.</p>
+                            </div>
+                        </div>
+                         <div class="content-card p-6 mt-6">
+                            <h3>4.3. Higher-Order Functions (HOFs)</h3>
+                            <p>A higher-order function is a function that either takes functions as arguments or returns a function. Scala's collection library is full of them.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>def operateOnNumbers(a: Int, b: Int, operation: (Int, Int) => Int): Int = {
+  operation(a, b)
+}
+
+// Pass an anonymous function (lambda)
+val sum = operateOnNumbers(5, 3, (x, y) => x + y) // sum is 8
+
+// A function that returns another function
+def makeMultiplier(factor: Int): Int => Int = {
+  (x: Int) => x * factor
+}
+
+val doubler = makeMultiplier(2)
+println(doubler(10)) // Output: 20</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+                'chapter-5': {
+                    title: 'Scala Collections',
+                    content: `
+                        <h2>Chapter 5: Scala Collections In-Depth</h2>
+                        <div class="content-card p-6">
+                            <h3>5.2. Common Immutable Collection Types</h3>
+                            <ul class="list-disc list-inside">
+                                <li><strong>List:</strong> An immutable linked list. Efficient prepending (<code>elem :: list</code>).</li>
+                                <li><strong>Vector:</strong> A general-purpose immutable sequence with fast random access. Good default choice.</li>
+                                <li><strong>Set:</strong> A collection of unique elements.</li>
+                                <li><strong>Map:</strong> A collection of key-value pairs.</li>
+                            </ul>
+                            <div class="comparison-box">
+                                <h4>Choosing the Right Collection</h4>
+                                <p>Python's <code>list</code> is a mutable array. For similar use cases in Scala, an immutable <code>Vector</code> is often a better choice than <code>List</code> if you need frequent random access. Understanding these performance nuances is key.</p>
+                            </div>
+                        </div>
+                        <div class="content-card p-6 mt-6">
+                            <h3>5.3. Powerful Collection Methods</h3>
+                            <p>Scala collections come with dozens of powerful methods that operate functionally, returning new collections instead of mutating old ones.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>val numbers = List(1, 2, 3, 4, 5)
+
+// map: Transform each element
+val squares = numbers.map(n => n * n) // List(1, 4, 9, 16, 25)
+
+// filter: Select elements
+val evens = numbers.filter(_ % 2 == 0) // List(2, 4)
+
+// foldLeft: Aggregate to a single value
+val sum = numbers.foldLeft(0)(_ + _) // 15
+
+// flatMap: Transform and flatten
+val words = List("hello world", "scala is fun")
+val chars = words.flatMap(_.toList) // List('h','e','l','l','o',' ',...)</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+                'chapter-6': {
+                    title: 'Functional Error Handling',
+                    content: `
+                        <h2>Chapter 6: Functional Error Handling</h2>
+                        <div class="content-card p-6">
+                            <h3>6.1. The Problem with Nulls and Exceptions</h3>
+                            <p>Functional programming avoids nulls (which cause <code>NullPointerExceptions</code>) and exceptions (which break pure function evaluation). Instead, it represents potential errors explicitly as part of the data type system.</p>
+                        </div>
+                         <div class="content-card p-6 mt-6">
+                            <h3>6.2. Option, Some, None</h3>
+                            <p>The <code>Option[A]</code> type represents a value that might be absent. It has two subtypes: <code>Some[A]</code> for an existing value, and <code>None</code> for an absent one.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>def toInt(s: String): Option[Int] = {
+  try {
+    Some(Integer.parseInt(s.trim))
+  } catch {
+    case _: NumberFormatException => None
+  }
+}
+
+toInt("123") match {
+  case Some(i) => println(s"Parsed: $i")
+  case None    => println("Parsing failed.")
+}</code></pre>
+                            </div>
+                             <h4 class="mt-4">Composing Options</h4>
+                             <p>Options can be chained with <code>map</code> and <code>flatMap</code>, often via a <code>for</code>-comprehension.</p>
+                            <div class="code-block">
+                                <button class="copy-btn">Copy</button>
+                                <pre><code>val config = Map("host" -> "localhost", "port" -> "8080")
+
+val connectionDetails = for {
+    host <- config.get("host") // .get returns an Option
+    portStr <- config.get("port")
+    port <- toInt(portStr)
+} yield s"Connecting to $host:$port"
+
+// connectionDetails is Some("Connecting to localhost:8080")</code></pre>
+                            </div>
+                        </div>
+                    `
+                },
+            };
+
+            const navigationMenu = document.getElementById('navigation-menu');
+            const contentArea = document.getElementById('content-area');
+            const headerTitle = document.getElementById('main-header-title');
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            
+            const chapterIds = Object.keys(courseData);
+            let visitedChapters = new Set();
+            let currentChapter = null;
+
+            const progressChartCtx = document.getElementById('progressChart').getContext('2d');
+            let progressChart = new Chart(progressChartCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'Remaining'],
+                    datasets: [{
+                        data: [0, chapterIds.length],
+                        backgroundColor: ['#A69C8F', '#EAE8E3'],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+            
+            function updateProgress() {
+                const completedCount = visitedChapters.size;
+                const remainingCount = chapterIds.length - completedCount;
+                progressChart.data.datasets[0].data = [completedCount, remainingCount];
+                progressChart.update();
+            }
+
+            function loadContent(chapterId) {
+                if (!courseData[chapterId]) return;
+
+                currentChapter = chapterId;
+                const chapter = courseData[chapterId];
+                contentArea.innerHTML = chapter.content;
+                headerTitle.textContent = chapter.title;
+
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.chapter === chapterId) {
+                        link.classList.add('active');
+                    }
+                });
+
+                if (!visitedChapters.has(chapterId)) {
+                    visitedChapters.add(chapterId);
+                    updateProgress();
+                }
+                
+                attachCopyListeners();
+                contentArea.scrollTop = 0; // Scroll to top of content
+            }
+            
+            function attachCopyListeners() {
+                const copyButtons = document.querySelectorAll('.copy-btn');
+                copyButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        const pre = button.nextElementSibling;
+                        const code = pre.textContent;
+                        
+                        const el = document.createElement('textarea');
+                        el.value = code;
+                        document.body.appendChild(el);
+                        el.select();
+                        try {
+                           document.execCommand('copy');
+                           button.textContent = 'Copied!';
+                           setTimeout(() => { button.textContent = 'Copy'; }, 2000);
+                        } catch (err) {
+                           console.error('Failed to copy text: ', err);
+                        }
+                        document.body.removeChild(el);
+                    });
+                });
+            }
+
+            // Populate navigation
+            chapterIds.forEach(id => {
+                const chapter = courseData[id];
+                const link = document.createElement('a');
+                link.href = '#';
+                link.textContent = chapter.title;
+                link.dataset.chapter = id;
+                link.className = 'block nav-link p-4 text-sm font-medium';
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadContent(id);
+                    if (window.innerWidth < 768) {
+                        sidebar.classList.add('hidden');
+                    }
+                });
+                navigationMenu.appendChild(link);
+            });
+            
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+            });
+
+            // Load initial content
+            loadContent('chapter-1');
+        });
+    </script>
+</body>
+</html>
